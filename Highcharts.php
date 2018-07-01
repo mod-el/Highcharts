@@ -22,6 +22,10 @@ class Highcharts extends Module
 		$chartOptions = [
 			'chart' => [
 				'zoomType' => 'x',
+				'scrollablePlotArea' => [
+					'minWidth' => 700,
+					'scrollPositionX' => 1.
+				],
 			],
 			'title' => [
 				'text' => '',
@@ -108,6 +112,7 @@ class Highcharts extends Module
 			'label' => null,
 			'label-type' => null, // supported at the moment: datetime
 			'values-type' => null, // supported at the moment: price
+			'onclick' => null,
 		], $options);
 
 		$chartOptions = [
@@ -119,8 +124,9 @@ class Highcharts extends Module
 			],
 			'plotOptions' => [
 				'pie' => [
-					'allowPointSelect' => false,
+					'allowPointSelect' => true,
 					'cursor' => 'pointer',
+					'showInLegend' => false,
 				],
 			],
 			'series' => [
@@ -130,18 +136,38 @@ class Highcharts extends Module
 					'data' => [],
 				],
 			],
+			'responsive' => [
+				'rules' => [
+					[
+						'condition' => [
+							'maxWidth' => 480,
+						],
+						'chartOptions' => [
+							'plotOptions' => [
+								'pie' => [
+									'dataLabels' => [
+										'enabled' => false,
+									],
+									'showInLegend' => true,
+								],
+							],
+						],
+					],
+				],
+			],
 		];
 
 		$numbersDirection = null;
 		foreach ($list as $elIdx => $el) {
+			$pointId = $el[$options['label']] ?? '';
 			if (is_object($el)) {
 				$form = $el->getForm();
 				if ($form[$options['label']])
 					$label = $form[$options['label']]->getText();
 				else
-					$label = $el[$options['label']];
+					$label = $pointId;
 			} else {
-				$label = $el[$options['label']] ?? '';
+				$label = $pointId;
 			}
 
 			$value = $el[$options['field']];
@@ -162,6 +188,7 @@ class Highcharts extends Module
 				$value = abs($value);
 
 			$chartOptions['series'][0]['data'][] = [
+				'id' => $pointId,
 				'name' => $label,
 				'y' => $value,
 			];
@@ -177,6 +204,16 @@ class Highcharts extends Module
 			chartOptions['tooltip'] = {'pointFormat': '{series.name}: <b>{point.y:,.2f}€</b>'};
 			<?php
 			break;
+			}
+
+			if ($options['onclick']) {
+			?>
+			chartOptions['plotOptions']['pie']['events'] = {
+				'click': function (event) {
+					<?=$options['onclick']?>
+				}
+			};
+			<?php
 			}
 			?>
 			Highcharts.chart('<?= entities($options['id']) ?>', chartOptions);
