@@ -1,0 +1,9 @@
+{
+	"name": "Highcharts",
+	"description": "Integration with Highcharts (via CDN)",
+	"version": "0.0.1",
+	"dependencies": {},
+	"js": [
+		"https://code.highcharts.com/highcharts.src.js"
+	]
+}
