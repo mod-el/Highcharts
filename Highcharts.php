@@ -110,6 +110,7 @@ class Highcharts extends Module
 			'id' => 'pie-chart',
 			'field' => null,
 			'label' => null,
+			'text' => null,
 			'label-type' => null, // supported at the moment: datetime
 			'values-type' => null, // supported at the moment: price
 			'onclick' => null,
@@ -160,14 +161,22 @@ class Highcharts extends Module
 		$numbersDirection = null;
 		foreach ($list as $elIdx => $el) {
 			$pointId = $el[$options['label']] ?? '';
-			if (is_object($el)) {
-				$form = $el->getForm();
-				if ($form[$options['label']])
-					$label = $form[$options['label']]->getText();
+
+			if ($options['text']) {
+				if (!is_string($options['text']) and is_callable($options['text']))
+					$label = call_user_func($options['text'], $el);
 				else
-					$label = $pointId;
+					$label = $options['text'];
 			} else {
-				$label = $pointId;
+				if (is_object($el)) {
+					$form = $el->getForm();
+					if ($form[$options['label']])
+						$label = $form[$options['label']]->getText();
+					else
+						$label = $pointId;
+				} else {
+					$label = $pointId;
+				}
 			}
 
 			$value = $el[$options['field']];
