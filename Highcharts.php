@@ -114,6 +114,7 @@ class Highcharts extends Module
 			'label-type' => null, // supported at the moment: datetime
 			'values-type' => null, // supported at the moment: price
 			'onclick' => null,
+			'drilldown' => null,
 		], $options);
 
 		$chartOptions = [
@@ -133,7 +134,6 @@ class Highcharts extends Module
 			'series' => [
 				[
 					'name' => $this->getLabel($options['field']),
-					'colorByPoint' => true,
 					'data' => [],
 				],
 			],
@@ -157,6 +157,25 @@ class Highcharts extends Module
 				],
 			],
 		];
+
+		if ($options['drilldown']) {
+			$chartOptions['series'] = [
+				0 => [
+					'name' => $this->getLabel(is_string($options['drilldown']) ? $options['drilldown'] : ''),
+					'data' => [],
+					'size' => '78%',
+					'dataLabels' => false,
+				],
+				1 => array_merge($chartOptions['series'][0], [
+					'size' => '100%',
+					'innerSize' => '80%',
+				]),
+			];
+		}
+
+		// For donut charts
+		$macro = [];
+		$sub = [];
 
 		$numbersDirection = null;
 		foreach ($list as $elIdx => $el) {
@@ -196,11 +215,70 @@ class Highcharts extends Module
 			if ($value < 0)
 				$value = abs($value);
 
-			$chartOptions['series'][0]['data'][] = [
-				'id' => $pointId,
-				'name' => $label,
-				'y' => $value,
-			];
+			if ($options['drilldown']) {
+				if (!is_string($options['drilldown']) and is_callable($options['drilldown'])) {
+					$drilldownField = null;
+					$drilldown = call_user_func($options['drilldown'], $el);
+					$drilldownOn = $drilldown['id'];
+					$drilldownLabel = $drilldown['label'];
+				} else {
+					$drilldownField = $options['drilldown'];
+					$drilldownOn = $el[$drilldownField];
+					$drilldownLabel = null;
+				}
+				if (!isset($macro[$drilldownOn])) {
+					if ($drilldownLabel === null and $drilldownField) {
+						if (is_object($el)) {
+							$form = $el->getForm();
+							if ($form[$drilldownField])
+								$drilldownLabel = $form[$drilldownField]->getText();
+							else
+								$drilldownLabel = $el[$drilldownField];
+						} else {
+							$drilldownLabel = $el[$drilldownField];
+						}
+					}
+					$macro[$drilldownOn] = [
+						'id' => $drilldownOn,
+						'label' => $drilldownLabel,
+						'v' => 0,
+					];
+
+					$sub[$drilldownOn] = [];
+				}
+				$macro[$drilldownOn]['v'] += $value;
+
+				$sub[$drilldownOn][] = [
+					'id' => $pointId,
+					'name' => $label,
+					'y' => $value,
+				];
+			} else {
+				$chartOptions['series'][0]['data'][] = [
+					'id' => $pointId,
+					'name' => $label,
+					'y' => $value,
+				];
+			}
+		}
+
+		if ($options['drilldown']) {
+			ksort($macro);
+			ksort($sub);
+
+			foreach ($macro as $cat) {
+				$chartOptions['series'][0]['data'][] = [
+					'id' => $cat['id'],
+					'name' => $cat['label'],
+					'y' => $cat['v'],
+				];
+			}
+
+			foreach ($sub as $cat => $data) {
+				foreach ($data as $d) {
+					$chartOptions['series'][1]['data'][] = $d;
+				}
+			}
 		}
 		?>
 		<div id="<?= entities($options['id']) ?>"></div>
