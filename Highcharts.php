@@ -12,6 +12,7 @@ class Highcharts extends Module
 	public function lineChart($list, array $options = [])
 	{
 		$options = array_merge([
+			'type' => 'line',
 			'id' => 'line-chart',
 			'fields' => [],
 			'label' => null,
@@ -32,7 +33,7 @@ class Highcharts extends Module
 			],
 			'yAxis' => [
 				'title' => [
-					'text' => $this->getLabel($options['fields'][0] ?? ''),
+					'text' => '',
 				],
 			],
 			'xAxis' => [
@@ -43,34 +44,53 @@ class Highcharts extends Module
 			'series' => [],
 		];
 
+		if ($options['type'] === 'area') {
+			$chartOptions['chart']['type'] = 'area';
+			$chartOptions['plotOptions']['area']['stacking'] = 'normal';
+			$chartOptions['plotOptions']['area']['marker']['enabled'] = false;
+		}
+
 		switch ($options['label-type']) {
 			case 'datetime':
 				$chartOptions['xAxis']['type'] = 'datetime';
 				break;
 		}
 
+		// Check if fields is an associative array or a numeric one
+		$is_fields_assoc = false;
+		$c_idx = 0;
 		foreach ($options['fields'] as $idx => $f) {
-			if (is_numeric($idx))
+			if ($c_idx !== $idx) {
+				$is_fields_assoc = true;
+				break;
+			}
+			$c_idx++;
+		}
+
+		$cf = 0;
+		foreach ($options['fields'] as $idx => $f) {
+			if (!$is_fields_assoc)
 				$label = $this->getLabel($f);
 			else
-				$label = $idx;
-			$chartOptions['series'][$idx] = [
+				$label = $f;
+			$chartOptions['series'][$cf++] = [
 				'name' => $label,
 				'data' => [],
 			];
 		}
 
 		foreach ($list as $elIdx => $el) {
+			$cf = 0;
 			foreach ($options['fields'] as $idx => $f) {
 				$label = $options['label'] ? $el[$options['label']] : $elIdx;
-				$v = $el[$f];
+				$v = $el[$is_fields_assoc ? $idx : $f];
 				switch ($options['label-type']) {
 					case 'datetime':
 						$label = 'virgdelDate.parse(\'' . $label . '\')virgdel';
 						break;
 				}
 
-				$chartOptions['series'][$idx]['data'][] = [
+				$chartOptions['series'][$cf++]['data'][] = [
 					$label,
 					$v,
 				];
@@ -97,6 +117,17 @@ class Highcharts extends Module
 			Highcharts.chart('<?= entities($options['id']) ?>', chartOptions);
 		</script>
 		<?php
+	}
+
+	/**
+	 * @param $list
+	 * @param array $options
+	 * @throws \Exception
+	 */
+	public function areaChart($list, array $options = [])
+	{
+		$options['type'] = 'area';
+		return $this->lineChart($list, $options);
 	}
 
 	/**
