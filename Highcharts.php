@@ -5,11 +5,11 @@ use Model\Core\Module;
 class Highcharts extends Module
 {
 	/**
-	 * @param $list
+	 * @param iterable $list
 	 * @param array $options
 	 * @throws \Exception
 	 */
-	public function lineChart($list, array $options = [])
+	public function lineChart(iterable $list, array $options = [])
 	{
 		$options = array_merge([
 			'type' => 'line',
@@ -120,22 +120,22 @@ class Highcharts extends Module
 	}
 
 	/**
-	 * @param $list
+	 * @param iterable $list
 	 * @param array $options
 	 * @throws \Exception
 	 */
-	public function areaChart($list, array $options = [])
+	public function areaChart(iterable $list, array $options = [])
 	{
 		$options['type'] = 'area';
 		return $this->lineChart($list, $options);
 	}
 
 	/**
-	 * @param $list
+	 * @param iterable $list
 	 * @param array $options
 	 * @throws \Exception
 	 */
-	public function pieChart($list, array $options = [])
+	public function pieChart(iterable $list, array $options = [])
 	{
 		$options = array_merge([
 			'id' => 'pie-chart',
