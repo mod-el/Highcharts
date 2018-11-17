@@ -18,6 +18,7 @@ class Highcharts extends Module
 			'label' => null,
 			'label-type' => null, // supported at the moment: datetime
 			'values-type' => null, // supported at the moment: price
+			'plot-lines' => [],
 		], $options);
 
 		$chartOptions = [
@@ -35,6 +36,7 @@ class Highcharts extends Module
 				'title' => [
 					'text' => '',
 				],
+				'plotLines' => is_callable($options['plot-lines']) ? $options['plot-lines']() : $options['plot-lines'],
 			],
 			'xAxis' => [
 				'title' => [
