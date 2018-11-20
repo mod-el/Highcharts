@@ -19,6 +19,7 @@ class Highcharts extends Module
 			'label-type' => null, // supported at the moment: datetime
 			'values-type' => null, // supported at the moment: price
 			'plot-lines' => [],
+			'annotations' => [],
 		], $options);
 
 		$chartOptions = [
@@ -27,6 +28,19 @@ class Highcharts extends Module
 				'scrollablePlotArea' => [
 					'minWidth' => 700,
 					'scrollPositionX' => 1.
+				],
+				'events' => [],
+			],
+			'plotOptions' => [
+				'series' => [
+					'dataLabels' => [
+						'shape' => 'callout',
+						'backgroundColor' => 'rgba(0, 0, 0, 0.67)',
+						'style' => [
+							'color' => '#FFFFFF',
+							'textShadow' => 'none',
+						],
+					],
 				],
 			],
 			'title' => [
@@ -97,6 +111,43 @@ class Highcharts extends Module
 					$v,
 				];
 			}
+
+			// Annotations handling. I look for the right point to add the annotation to
+			switch ($options['label-type']) {
+				case 'datetime':
+					$label = date_create($el[$options['label']]);
+					break;
+			}
+
+			foreach ($options['annotations'] as &$annotation) {
+				if (isset($annotation['point-set']))
+					continue;
+				if ($annotation['point'] <= $label) {
+					$annotation['point'] = $elIdx;
+					$annotation['point-set'] = true;
+				}
+			}
+			unset($annotation);
+		}
+
+		if ($options['annotations']) {
+			?>
+			<script>
+				function highchartsAddAnnotations() {
+					<?php
+					foreach ($options['annotations'] as $annotation) {
+					if (!isset($annotation['point-set']))
+						continue;
+					?>
+					this.series[<?=($annotation['series'] ?? 0)?>].points[<?=$annotation['point']?>].update({
+						dataLabels: <?=json_encode(array_merge(['enabled' => true], $annotation['annotation']))?>
+					});
+					<?php
+					}
+					?>
+				}
+			</script>
+			<?php
 		}
 		?>
 		<div id="<?= entities($options['id']) ?>"></div>
@@ -114,6 +165,12 @@ class Highcharts extends Module
 			chartOptions['tooltip'] = {'pointFormat': '{series.name}: <b>{point.y:,.2f}€</b>'};
 			<?php
 			break;
+			}
+
+			if ($options['annotations']){
+			?>
+			chartOptions['chart']['events']['load'] = highchartsAddAnnotations;
+			<?php
 			}
 			?>
 			Highcharts.chart('<?= entities($options['id']) ?>', chartOptions);
