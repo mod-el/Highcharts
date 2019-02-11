@@ -20,6 +20,7 @@ class Highcharts extends Module
 			'values-type' => null, // supported at the moment: price
 			'plot-lines' => [],
 			'annotations' => [],
+			'tooltip-split' => false,
 		], $options);
 
 		$chartOptions = [
@@ -45,6 +46,9 @@ class Highcharts extends Module
 			],
 			'title' => [
 				'text' => '',
+			],
+			'tooltip' => [
+				'split' => $options['tooltip-split'],
 			],
 			'yAxis' => [
 				'title' => [
@@ -162,7 +166,7 @@ class Highcharts extends Module
 					return makePrice(this.value).replace('&euro;', '€');
 				}
 			};
-			chartOptions['tooltip'] = {'pointFormat': '{series.name}: <b>{point.y:,.2f}€</b>'};
+			chartOptions['tooltip']['pointFormat'] = '{series.name}: <b>{point.y:,.2f}€</b>';
 			<?php
 			break;
 			}
