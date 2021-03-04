@@ -187,6 +187,74 @@ class Highcharts extends Module
 	 * @param array $options
 	 * @throws \Exception
 	 */
+	public function stackedBarChart(iterable $list, array $options = [])
+	{
+		$options = array_merge([
+			'id' => 'bar-chart',
+			'labels' => [],
+			'height' => null,
+		], $options);
+
+		$chartOptions = [
+			'chart' => [
+				'type' => 'bar',
+				'height' => $options['height'],
+			],
+			'title' => [
+				'text' => '',
+			],
+			'xAxis' => [
+				'categories' => $options['labels'],
+			],
+			'yAxis' => [
+				'title' => [
+					'text' => '',
+				],
+			],
+			'legend' => [
+				'reversed' => true,
+			],
+			'plotOptions' => [
+				'series' => [
+					'stacking' => 'normal',
+				],
+			],
+			'series' => $list,
+		];
+
+		/*switch ($options['label-type']) {
+			case 'datetime':
+				$chartOptions['xAxis']['type'] = 'datetime';
+				break;
+		}*/
+		?>
+		<div id="<?= entities($options['id']) ?>"></div>
+		<script>
+			var chartOptions = <?=str_replace(['"virgdel', 'virgdel"'], '', json_encode($chartOptions))?>;
+			<?php
+			/*switch ($options['values-type']) {
+			case 'price':
+			?>
+			chartOptions['yAxis']['labels'] = {
+				'formatter': function () {
+					return makePrice(this.value).replace('&euro;', '€');
+				}
+			};
+			chartOptions['tooltip']['pointFormat'] = '{series.name}: <b>{point.y:,.2f}€</b>';
+			<?php
+			break;
+			}*/
+			?>
+			Highcharts.chart('<?= entities($options['id']) ?>', chartOptions);
+		</script>
+		<?php
+	}
+
+	/**
+	 * @param iterable $list
+	 * @param array $options
+	 * @throws \Exception
+	 */
 	public function areaChart(iterable $list, array $options = [])
 	{
 		$options['type'] = 'area';
