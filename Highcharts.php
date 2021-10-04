@@ -293,12 +293,7 @@ class Highcharts extends Module
 					'showInLegend' => false,
 				],
 			],
-			'series' => [
-				[
-					'name' => $this->getLabel($options['field']),
-					'data' => [],
-				],
-			],
+			'series' => [],
 			'responsive' => [
 				'rules' => [
 					[
@@ -320,27 +315,9 @@ class Highcharts extends Module
 			],
 		];
 
-		if ($options['drilldown']) {
-			$chartOptions['series'] = [
-				0 => [
-					'name' => $this->getLabel(is_string($options['drilldown']) ? $options['drilldown'] : ''),
-					'data' => [],
-					'size' => '78%',
-					'dataLabels' => false,
-				],
-				1 => array_merge($chartOptions['series'][0], [
-					'size' => '100%',
-					'innerSize' => '80%',
-				]),
-			];
-		}
-
 		// For donut charts
-		$macro = [];
-		$sub = [];
-
 		$numbersDirection = null;
-		foreach ($list as $elIdx => $el) {
+		foreach ($list as $el) {
 			$pointId = $el[$options['label']] ?? '';
 
 			if ($options['text']) {
@@ -377,71 +354,91 @@ class Highcharts extends Module
 			if ($value < 0)
 				$value = abs($value);
 
+			$drilldown = [];
 			if ($options['drilldown']) {
 				if (!is_string($options['drilldown']) and is_callable($options['drilldown'])) {
-					$drilldownField = null;
-					$drilldown = call_user_func($options['drilldown'], $el);
-					$drilldownOn = $drilldown['id'];
-					$drilldownLabel = $drilldown['label'];
+					$drilldown = $options['drilldown']($el);
 				} else {
-					$drilldownField = $options['drilldown'];
-					$drilldownOn = $el[$drilldownField];
-					$drilldownLabel = null;
-				}
-				if (!isset($macro[$drilldownOn])) {
-					if ($drilldownLabel === null and $drilldownField) {
-						if (is_object($el)) {
-							$form = $el->getForm();
-							if ($form[$drilldownField])
-								$drilldownLabel = $form[$drilldownField]->getText();
-							else
-								$drilldownLabel = $el[$drilldownField];
-						} else {
-							$drilldownLabel = $el[$drilldownField];
-						}
-					}
-					$macro[$drilldownOn] = [
-						'id' => $drilldownOn,
-						'label' => $drilldownLabel,
-						'v' => 0,
+					$drilldown = [
+						[
+							'id' => $el[$options['drilldown']],
+							'label' => '',
+						],
 					];
-
-					$sub[$drilldownOn] = [];
 				}
-				$macro[$drilldownOn]['v'] += $value;
+			}
 
-				$sub[$drilldownOn][] = [
+			if (empty($drilldown)) {
+				$drilldown[] = [
 					'id' => $pointId,
-					'name' => $label,
-					'y' => $value,
+					'label' => $label,
 				];
-			} else {
-				$chartOptions['series'][0]['data'][] = [
-					'id' => $pointId,
-					'name' => $label,
-					'y' => $value,
-				];
+			}
+
+			$sortingIdx = [];
+			foreach ($drilldown as $layerIdx => $layer) {
+				$sortingIdx[] = str_pad($layer['id'], 20, '0', STR_PAD_LEFT);
+
+				if (!isset($chartOptions['series'][$layerIdx])) {
+					$chartOptions['series'][$layerIdx] = [
+						'name' => $this->getLabel($options['field']),
+						'data' => [],
+					];
+				}
+
+				$sortingIdxStr = implode('-', $sortingIdx);
+
+				if (!isset($chartOptions['series'][$layerIdx]['data'][$sortingIdxStr])) {
+					$chartOptions['series'][$layerIdx]['data'][$sortingIdxStr] = [
+						'id' => $layer['id'],
+						'name' => $layer['label'],
+						'y' => 0,
+					];
+				}
+
+				$chartOptions['series'][$layerIdx]['data'][$sortingIdxStr]['y'] += $value;
 			}
 		}
 
-		if ($options['drilldown']) {
-			ksort($macro);
-			ksort($sub);
-
-			foreach ($macro as $cat) {
-				$chartOptions['series'][0]['data'][] = [
-					'id' => $cat['id'],
-					'name' => $cat['label'],
-					'y' => $cat['v'],
-				];
-			}
-
-			foreach ($sub as $cat => $data) {
-				foreach ($data as $d) {
-					$chartOptions['series'][1]['data'][] = $d;
+		// Creo i livelli superiori per dati esistenti solo a quelli inferiori
+		$previousData = [];
+		foreach ($chartOptions['series'] as &$series) {
+			foreach ($previousData as $idx => $datum) {
+				$found = false;
+				foreach ($series['data'] as $dataIdx => $currentDatum) {
+					if (strpos($dataIdx, $idx) === 0) {
+						$found = true;
+						break;
+					}
 				}
+
+				if (!$found)
+					$series['data'][$idx . '-' . str_pad($datum['id'], 20, '0', STR_PAD_LEFT)] = $datum;
 			}
+
+			$previousData = $series['data'];
 		}
+		unset($series);
+
+		// Riordino tutti i livelli e calcolo dimensioni e altre opzioni
+		$previousSize = 0;
+		foreach ($chartOptions['series'] as $idx => &$series) {
+			ksort($series['data']);
+			$series['data'] = array_values($series['data']);
+
+			$layerIdx = $idx + 1;
+			$totLayers = count($chartOptions['series']);
+
+			$size = $previousSize + $this->getPieLayerSize($layerIdx, $totLayers);
+			$series['size'] = $size . '%';
+			if ($previousSize)
+				$series['innerSize'] = round($previousSize * 1.02) . '%';
+			$previousSize = $size;
+
+			if ($layerIdx < $totLayers)
+				$series['dataLabels'] = false;
+		}
+		unset($series);
 		?>
 		<div id="<?= entities($options['id']) ?>"></div>
 		<script>
@@ -479,5 +476,21 @@ class Highcharts extends Module
 	public function getLabel(string $k): string
 	{
 		return ucwords(str_replace(array('-', '_'), ' ', $k));
+	}
+
+	/**
+	 * @param int $idx
+	 * @param int $tot
+	 * @return int
+	 */
+	public function getPieLayerSize(int $idx, int $tot): int
+	{
+		$sommatoria = 0;
+		for ($i = 1; $i <= $tot; $i++)
+			$sommatoria += $i;
+
+		$inverso = $tot - $idx + 1;
+
+		return round($inverso / $sommatoria * 100);
 	}
 }
