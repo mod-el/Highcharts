@@ -119,7 +119,7 @@ class Highcharts extends Module
 			// Annotations handling. I look for the right point to add the annotation to
 			switch ($options['label-type']) {
 				case 'datetime':
-					$label = date_create($el[$options['label']]);
+					$label = $el[$options['label']] ? date_create($el[$options['label']]) : '';
 					break;
 			}
 
