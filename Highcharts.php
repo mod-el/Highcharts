@@ -196,10 +196,10 @@ class Highcharts extends Module
 		], $options);
 
 		if (is_callable($options['height']))
-			$options['height'] = $options['height']();
+			$options['height'] = $options['height']($this->model);
 
 		if (is_callable($options['labels']))
-			$options['labels'] = $options['labels']();
+			$options['labels'] = $options['labels']($this->model);
 
 		$chartOptions = [
 			'chart' => [
