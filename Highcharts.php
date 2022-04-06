@@ -195,6 +195,12 @@ class Highcharts extends Module
 			'height' => null,
 		], $options);
 
+		if (is_callable($options['height']))
+			$options['height'] = $options['height']();
+
+		if (is_callable($options['labels']))
+			$options['labels'] = $options['labels']();
+
 		$chartOptions = [
 			'chart' => [
 				'type' => 'bar',
