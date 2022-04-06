@@ -54,7 +54,7 @@ class Highcharts extends Module
 				'title' => [
 					'text' => '',
 				],
-				'plotLines' => is_callable($options['plot-lines']) ? $options['plot-lines']($this->model) : $options['plot-lines'],
+				'plotLines' => is_callable($options['plot-lines']) ? $options['plot-lines']() : $options['plot-lines'],
 			],
 			'xAxis' => [
 				'title' => [
@@ -196,10 +196,10 @@ class Highcharts extends Module
 		], $options);
 
 		if (is_callable($options['height']))
-			$options['height'] = $options['height']($this->model);
+			$options['height'] = $options['height']();
 
 		if (is_callable($options['labels']))
-			$options['labels'] = $options['labels']($this->model);
+			$options['labels'] = $options['labels']();
 
 		$chartOptions = [
 			'chart' => [
