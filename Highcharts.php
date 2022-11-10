@@ -398,6 +398,7 @@ class Highcharts extends Module
 					$chartOptions['series'][$layerIdx]['data'][$sortingIdxStr] = [
 						'id' => $layer['id'],
 						'name' => $layer['label'],
+						'color' => $el['color'] ?? null,
 						'y' => 0,
 					];
 				}
@@ -412,7 +413,7 @@ class Highcharts extends Module
 			foreach ($previousData as $idx => $datum) {
 				$found = false;
 				foreach ($series['data'] as $dataIdx => $currentDatum) {
-					if (strpos($dataIdx, $idx) === 0) {
+					if (str_starts_with($dataIdx, $idx)) {
 						$found = true;
 						break;
 					}
