@@ -348,6 +348,8 @@ class Highcharts extends Module
 				echo 'Unsupported non-numeric value for pie chart';
 				return;
 			}
+			if ($value == 0)
+				continue;
 
 			if ($numbersDirection) {
 				if (($numbersDirection == 1 and $value < 0) or ($numbersDirection == -1 and $value > 0)) {
